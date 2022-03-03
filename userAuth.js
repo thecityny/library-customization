@@ -7,8 +7,8 @@ const GoogleStrategy = require('passport-google-oauth20')
 const SlackStrategy = require('passport-slack-oauth2').Strategy
 
 const {getAuth} = require('../auth')
-const {Datastore} = require('@google-cloud/datastore');
-const {DatastoreStore} = require('@google-cloud/connect-datastore');
+const {Datastore} = require('@google-cloud/datastore')
+const {DatastoreStore} = require('@google-cloud/connect-datastore')
 
 const log = require('./logger')
 const {stringTemplate: template} = require('./utils')
@@ -71,17 +71,19 @@ async function getDatastoreClient() {
   })
 }
 
-const datastoreClient = await getDatastoreClient();
+router.use(async (req, res, next) => {
+  const datastoreClient = await getDatastoreClient()
 
-router.use(session({
-  store: new DatastoreStore({
-    kind: 'express-sessions',
-    dataset: datastoreClient
-  }),
-  secret: process.env.SESSION_SECRET,
-  resave: true,
-  saveUninitialized: true
-}))
+  session({
+    store: new DatastoreStore({
+      kind: 'express-sessions',
+      dataset: datastoreClient
+    }),
+    secret: process.env.SESSION_SECRET,
+    resave: true,
+    saveUninitialized: true
+  })(req, res, next)
+})
 
 router.use(passport.initialize())
 router.use(passport.session())

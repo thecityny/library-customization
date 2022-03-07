@@ -6,15 +6,17 @@ const crypto = require('crypto')
 const GoogleStrategy = require('passport-google-oauth20')
 const SlackStrategy = require('passport-slack-oauth2').Strategy
 
-const {getAuth} = require('../auth')
+const {getAuth} = require('../server/auth')
 const {Datastore} = require('@google-cloud/datastore')
 const {DatastoreStore} = require('@google-cloud/connect-datastore')
 
-const log = require('./logger')
-const {stringTemplate: template} = require('./utils')
+const log = require('../server/logger')
+const {stringTemplate: template} = require('../server/utils')
 
 const router = require('express-promise-router')()
 const domains = new Set(process.env.APPROVED_DOMAINS.split(/,\s?/g))
+
+log.info('Using custom userAuth')
 
 const authStrategies = ['google', 'Slack']
 let authStrategy = process.env.OAUTH_STRATEGY
@@ -73,16 +75,29 @@ async function getDatastoreClient() {
 
 router.use(async (req, res, next) => {
   const datastoreClient = await getDatastoreClient()
+  // Set cookie to outlive session so datastore cleans up expired sessions
+  // https://github.com/googleapis/nodejs-datastore-session/pull/134
+  const serverExpiration = 1000 * 60 * 60 * 24 * 7
+  const cookieExpiration = 1000 * 60 * 60 * 24 * 365
 
-  session({
+  const datastoreSession = session({
     store: new DatastoreStore({
       kind: 'express-sessions',
-      dataset: datastoreClient
+      dataset: datastoreClient,
+      expirationMs: serverExpiration
     }),
+    cookie: {
+      maxAge: cookieExpiration,
+      sameSite: 'lax',
+      httpOnly: true
+    },
     secret: process.env.SESSION_SECRET,
     resave: true,
-    saveUninitialized: true
-  })(req, res, next)
+    rolling: true,
+    saveUninitialized: false
+  })
+  
+  datastoreSession(req, res, next)
 })
 
 router.use(passport.initialize())

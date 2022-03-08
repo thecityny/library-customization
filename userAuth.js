@@ -74,30 +74,42 @@ async function getDatastoreClient() {
 }
 
 router.use(async (req, res, next) => {
-  const datastoreClient = await getDatastoreClient()
-  // Set cookie to outlive session so datastore cleans up expired sessions
-  // https://github.com/googleapis/nodejs-datastore-session/pull/134
-  const serverExpiration = 1000 * 60 * 60 * 24 * 7
-  const cookieExpiration = 1000 * 60 * 60 * 24 * 365
-
-  const datastoreSession = session({
-    store: new DatastoreStore({
-      kind: 'express-sessions',
-      dataset: datastoreClient,
-      expirationMs: serverExpiration
-    }),
-    cookie: {
-      maxAge: cookieExpiration,
-      sameSite: 'lax',
-      httpOnly: true
-    },
-    secret: process.env.SESSION_SECRET,
-    resave: true,
-    rolling: true,
-    saveUninitialized: false
-  })
+  try {
+    const datastoreClient = await getDatastoreClient()
+    // Set cookie to outlive session so datastore cleans up expired sessions
+    // https://github.com/googleapis/nodejs-datastore-session/pull/134
+    const serverExpiration = 1000 * 60 * 60 * 24 * 7
+    const cookieExpiration = 1000 * 60 * 60 * 24 * 365
   
-  datastoreSession(req, res, next)
+    const datastoreSession = session({
+      store: new DatastoreStore({
+        kind: 'express-sessions',
+        dataset: datastoreClient,
+        expirationMs: serverExpiration
+      }),
+      cookie: {
+        maxAge: cookieExpiration,
+        sameSite: 'lax',
+        httpOnly: true
+      },
+      secret: process.env.SESSION_SECRET,
+      resave: true,
+      rolling: true,
+      saveUninitialized: false
+    })
+  
+    datastoreSession(req, res, next)
+  } catch (err) {
+    log.warn('Failed to load datastore')
+    // Default to MemoryStore if datastore can't be loaded
+    const memoryStoreSession = session({
+      secret: process.env.SESSION_SECRET,
+      resave: true,
+      saveUninitialized: true
+    })
+
+    memoryStoreSession(req, res, next)
+  }
 })
 
 router.use(passport.initialize())

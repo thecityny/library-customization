@@ -1,0 +1,22 @@
+
+branding:
+  name: THE CITY Docs
+  org: THE CITY
+  orgDomain: thecity.nyc
+  prettyName: THE CITY Docs
+  favicon: /assets/images/library.ico
+
+landing:
+  tagline: THE CITY's documentation site, built from content in Google Docs.
+  viewAll: View All Docs
+  quickLink: <a href="/get-started">Get started</a>.
+
+footer:
+  helpText: For help contributing, consult <a href="https://nyt-library-demo.herokuapp.com/how-to-use-library">the How to use Library guide</a>.
+  defaultEmail:
+
+search:
+  placeholder: What do you want to know about THE CITY?
+  results:
+    none:
+      suggestion: To add a new page, create a doc in <a href="https://drive.google.com/drive/u/0/folders/0AJseTKOUtD3XUk9PVA">the shared docs drive</a>.
